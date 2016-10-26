@@ -1178,6 +1178,7 @@ void replicationCron(void);
 void replicationHandleMasterDisconnection(void);
 void replicationCacheMaster(redisClient *c);
 void resizeReplicationBacklog(long long newsize);
+int cancelReplicationHandshake(void);
 void replicationSetMaster(char *ip, int port);
 void replicationUnsetMaster(void);
 void refreshGoodSlavesCount(void);
@@ -1575,6 +1576,8 @@ void enableWatchdog(int period);
 void disableWatchdog(void);
 void watchdogScheduleSignal(int period);
 void redisLogHexDump(int level, char *descr, void *value, size_t len);
+
+#include "ctrip.h"
 
 #define redisDebug(fmt, ...) \
     printf("DEBUG %s:%d > " fmt "\n", __FILE__, __LINE__, __VA_ARGS__)
