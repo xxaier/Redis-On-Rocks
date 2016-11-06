@@ -50,9 +50,13 @@ void xslaveofCommand(redisClient *c) {
          * we can continue. */
         xreplicationSetMaster(c->argv[1]->ptr, port);
         sds client = catClientInfoString(sdsempty(),c);
-        redisLog(REDIS_NOTICE,"SLAVE OF %s:%d enabled (user request from '%s')",
+        redisLog(REDIS_NOTICE,"XSLAVE OF %s:%d enabled (user request from '%s')",
             server.masterhost, server.masterport, client);
         sdsfree(client);
+
+        /* reconnect to master immdediately */
+        redisLog(REDIS_NOTICE,"XSLAVE OF %s:%d, connect to master immediately", server.masterhost, server.masterport);
+        replicationCron();
     }
     addReply(c,shared.ok);
 }
