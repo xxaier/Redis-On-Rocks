@@ -1,6 +1,8 @@
 .cproject
 .project
 Debug
+tmp
+xredis*.tar.gz
 .settings
 .*.swp
 *.o
