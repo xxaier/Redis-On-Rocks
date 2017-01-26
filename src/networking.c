@@ -1194,7 +1194,11 @@ void readQueryFromClient(aeEventLoop *el, int fd, void *privdata, int mask) {
     if (nread) {
         sdsIncrLen(c->querybuf,nread);
         c->lastinteraction = server.unixtime;
-        if (c->flags & REDIS_MASTER) c->reploff += nread;
+        if (c->flags & REDIS_MASTER) {
+        	c->reploff += nread;
+        	replicationFeedSlavesFromMasterStream(server.slaves,
+        			c->querybuf+qblen,nread);
+        }
         server.stat_net_input_bytes += nread;
     } else {
         server.current_client = NULL;

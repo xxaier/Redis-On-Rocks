@@ -1,19 +1,5 @@
 #include "redis.h"
 
-/**
- * try partial synchronize even when master changed
- */
-void xreplicationSetMaster(char *ip, int port) {
-    sdsfree(server.masterhost);
-    server.masterhost = sdsnew(ip);
-    server.masterport = port;
-    if (server.master) freeClient(server.master);
-    disconnectAllBlockedClients(); /* Clients blocked in master, now slave. */
-    cancelReplicationHandshake();
-    server.repl_state = REDIS_REPL_CONNECT;
-    server.repl_down_since = 0;
-}
-
 void xslaveofCommand(redisClient *c) {
     /* SLAVEOF is not allowed in cluster mode as replication is automatically
      * configured using the current address of the master node. */
@@ -48,7 +34,7 @@ void xslaveofCommand(redisClient *c) {
         }
         /* There was no previous master or the user specified a different one,
          * we can continue. */
-        xreplicationSetMaster(c->argv[1]->ptr, port);
+        replicationSetMaster(c->argv[1]->ptr, port);
         sds client = catClientInfoString(sdsempty(),c);
         redisLog(REDIS_NOTICE,"XSLAVE OF %s:%d enabled (user request from '%s')",
             server.masterhost, server.masterport, client);

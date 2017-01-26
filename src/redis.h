@@ -298,6 +298,8 @@ typedef long long mstime_t; /* millisecond time type. */
 /* Slave capabilities. */
 #define SLAVE_CAPA_NONE 0
 #define SLAVE_CAPA_EOF (1<<0)   /* Can parse the RDB EOF streaming format. */
+#define SLAVE_CAPA_PSYNC2 (1<<1) /* Supports PSYNC2 protocol. */
+
 
 /* Synchronous read timeout - slave side */
 #define REDIS_REPL_SYNCIO_TIMEOUT 5
@@ -561,8 +563,9 @@ typedef struct redisClient {
     long long psync_initial_offset; /* FULLRESYNC reply offset other slaves
                                        copying this slave output buffer
                                        should use. */
-    char replrunid[REDIS_RUN_ID_SIZE+1]; /* master run id if this is a master */
+    char replid[REDIS_RUN_ID_SIZE+1]; /* Master replication ID (if master). */
     int slave_listening_port; /* As configured with: SLAVECONF listening-port */
+
     int slave_capa;         /* Slave capabilities: SLAVE_CAPA_* bitwise OR. */
     multiState mstate;      /* MULTI/EXEC state */
     int btype;              /* Type of blocking op if REDIS_BLOCKED. */
@@ -812,8 +815,12 @@ struct redisServer {
     char *syslog_ident;             /* Syslog ident */
     int syslog_facility;            /* Syslog facility */
     /* Replication (master) */
+    /* Replication (master) */
+    char replid[REDIS_RUN_ID_SIZE+1];  /* My current replication ID. */
+    char replid2[REDIS_RUN_ID_SIZE+1]; /* replid inherited from master*/
+    long long master_repl_offset;   /* My current replication offset */
+    long long second_replid_offset; /* Accept offsets up to this for replid2. */
     int slaveseldb;                 /* Last SELECTed DB in replication output */
-    long long master_repl_offset;   /* Global replication offset */
     int repl_ping_slave_period;     /* Master pings the slave every N seconds */
     char *repl_backlog;             /* Replication backlog for partial syncs */
     long long repl_backlog_size;    /* Backlog circular buffer size */
@@ -851,9 +858,12 @@ struct redisServer {
     time_t repl_down_since; /* Unix time at which link with master went down */
     int repl_disable_tcp_nodelay;   /* Disable TCP_NODELAY after SYNC? */
     int slave_priority;             /* Reported in INFO and used by Sentinel. */
-    char repl_master_runid[REDIS_RUN_ID_SIZE+1];  /* Master run id for PSYNC. */
-    long long repl_master_initial_offset;         /* Master PSYNC offset. */
-    /* Replication script cache. */
+    /* The following two fields is where we store master PSYNC replid/offset
+         * while the PSYNC is in progress. At the end we'll copy the fields into
+         * the server->master client structure. */
+    char master_replid[REDIS_RUN_ID_SIZE+1];  /* Master PSYNC runid. */
+    long long master_initial_offset;           /* Master PSYNC offset. */
+     /* Replication script cache. */
     dict *repl_scriptcache_dict;        /* SHA1 all slaves are aware of. */
     list *repl_scriptcache_fifo;        /* First in, first out LRU eviction. */
     unsigned int repl_scriptcache_size; /* Max number of elements. */
@@ -1578,6 +1588,7 @@ void watchdogScheduleSignal(int period);
 void redisLogHexDump(int level, char *descr, void *value, size_t len);
 
 #include "ctrip.h"
+#include "ctrip-psync2.h"
 
 #define redisDebug(fmt, ...) \
     printf("DEBUG %s:%d > " fmt "\n", __FILE__, __LINE__, __VA_ARGS__)

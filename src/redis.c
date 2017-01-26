@@ -1416,6 +1416,8 @@ void initServerConfig(void) {
     server.configfile = NULL;
     server.hz = REDIS_DEFAULT_HZ;
     server.runid[REDIS_RUN_ID_SIZE] = '\0';
+    changeReplicationId();
+    clearReplicationId2();
     server.arch_bits = (sizeof(long) == 8) ? 64 : 32;
     server.port = REDIS_SERVERPORT;
     server.tcp_backlog = REDIS_TCP_BACKLOG;
@@ -1507,7 +1509,7 @@ void initServerConfig(void) {
     server.masterport = 6379;
     server.master = NULL;
     server.cached_master = NULL;
-    server.repl_master_initial_offset = -1;
+    server.master_initial_offset = -1;
     server.repl_state = REDIS_REPL_NONE;
     server.repl_syncio_timeout = REDIS_REPL_SYNCIO_TIMEOUT;
     server.repl_serve_stale_data = REDIS_DEFAULT_SLAVE_SERVE_STALE_DATA;
@@ -2983,12 +2985,18 @@ sds genRedisInfoString(char *section) {
             }
         }
         info = sdscatprintf(info,
+        	"master_replid:%s\r\n"
+        	"master_replid2:%s\r\n"
             "master_repl_offset:%lld\r\n"
+        	"second_repl_offset:%lld\r\n"
             "repl_backlog_active:%d\r\n"
             "repl_backlog_size:%lld\r\n"
             "repl_backlog_first_byte_offset:%lld\r\n"
             "repl_backlog_histlen:%lld\r\n",
+			server.replid,
+			server.replid2,
             server.master_repl_offset,
+			server.second_replid_offset,
             server.repl_backlog != NULL,
             server.repl_backlog_size,
             server.repl_backlog_off,
