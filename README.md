@@ -37,4 +37,4 @@ Suppose that redis slave is connectted to redis master(`ip1 port1`), at the mean
 
 <a name="psync2-support"></a>
 ## psync2 support
-Here is the document for [psync2](https://gist.github.com/antirez/ae068f95c0d084891305ØØ)
+Here is the document for [psync2](https://gist.github.com/antirez/ae068f95c0d084891305)
