@@ -1459,7 +1459,6 @@ int slaveTryPartialResynchronization(int fd, int read_reply) {
             "error state (reply: %s)", reply);
     }
     sdsfree(reply);
-    replicationDiscardCachedMaster();
     return PSYNC_NOT_SUPPORTED;
 }
 
@@ -1792,6 +1791,7 @@ void replicationUnsetMaster(void) {
     if (server.masterhost == NULL) return; /* Nothing to do. */
     sdsfree(server.masterhost);
     server.masterhost = NULL;
+    server.repl_no_slaves_since = server.unixtime;
 
     /* When a slave is turned into a master, the current replication ID
     * (that was inherited from the master at synchronization time) is
