@@ -1,10 +1,12 @@
 <!-- MarkdownTOC -->
 
-1. [Introduction](#introduction)
-1. [Features](#features)
-1. [Details](#details)
-    1. [xslaveof command](#xslaveof-command)
-    1. [psync2 support](#psync2-support)
+- [Introduction](#introduction)
+- [Features](#features)
+- [Details](#details)
+    - [xslaveof command](#xslaveof-command)
+    - [psync2 support](#psync2-support)
+    - [force full sync](#force-full-sync)
+    - [slave read only mode can replicate all commands to it's slaves](#slave-read-only-mode-can-replicate-all-commands-to-its-slaves)
 
 <!-- /MarkdownTOC -->
 
@@ -38,3 +40,25 @@ Suppose that redis slave is connectted to redis master(`ip1 port1`), at the mean
 <a name="psync2-support"></a>
 ## psync2 support
 Here is the document for [psync2](https://gist.github.com/antirez/ae068f95c0d084891305)
+<a name="force-full-sync"></a>
+## force full sync
+    * 命令 `refullsync`
+    force all slaves reconnect itself, and fullsync with slaves
+<a name="slave-read-only-mode-can-replicate-all-commands-to-its-slaves"></a>
+## slave read only mode can replicate all commands to it's slaves
+    **WARN: dangerous, you have to know what you are doing when using this command**
+
+    config set slave-replicate-all yes
+    config set slave-replicate-all no
+
+
+
+
+
+
+
+
+
+
+
+

@@ -460,7 +460,7 @@ int masterTryPartialResynchronization(redisClient *c) {
             "Slave %s request was: %lld, repl_backlog_off:%lld, histlen:%lld", replicationGetSlaveName(c), psync_offset, server.repl_backlog_off, server.repl_backlog_histlen);
         if (psync_offset > server.master_repl_offset) {
             redisLog(REDIS_WARNING,
-                "Warning: slave %s tried to PSYNC with an offset that is greater than the master replication offset.", replicationGetSlaveName(c));
+                "Warning: slave %s tried to PSYNC with an offset that is greater than the master replication offset(%lld).", replicationGetSlaveName(c), server.master_repl_offset);
         }
         goto need_full_resync;
     }

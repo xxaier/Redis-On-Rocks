@@ -1204,6 +1204,7 @@ long long replicationGetSlaveOffset(void);
 char *replicationGetSlaveName(redisClient *c);
 long long getPsyncInitialOffset(void);
 int replicationSetupSlaveForFullResync(redisClient *slave, long long offset);
+void freeReplicationBacklog(void);
 
 /* Generic persistence functions */
 void startLoading(FILE *fp);

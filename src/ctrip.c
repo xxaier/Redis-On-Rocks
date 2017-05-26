@@ -1,5 +1,17 @@
 #include "redis.h"
 
+void refullsyncCommand(redisClient *c) {
+
+    sds client = catClientInfoString(sdsempty(),c);
+    redisLog(REDIS_NOTICE,"refullsync called (user request from '%s')", client);
+    sdsfree(client);
+
+    disconnectSlaves(); /* Force our slaves to resync with us as well. */
+    freeReplicationBacklog(); /* Don't allow our chained slaves to PSYNC. */
+
+    addReply(c,shared.ok);
+}
+
 void xslaveofCommand(redisClient *c) {
     /* SLAVEOF is not allowed in cluster mode as replication is automatically
      * configured using the current address of the master node. */
