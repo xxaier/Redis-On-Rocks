@@ -46,12 +46,13 @@ Here is the document for [psync2](https://gist.github.com/antirez/ae068f95c0d084
     force all slaves reconnect itself, and fullsync with slaves
 <a name="slave-read-only-mode-can-replicate-all-commands-to-its-slaves"></a>
 ## slave read only mode can replicate all commands to it's slaves
-    **WARN: dangerous, you have to know what you are doing when using this command**
+**WARN: dangerous, you have to know what you are doing when using this comman**
 
-    config set slave-replicate-all yes
-    config set slave-replicate-all no
+    config set slave-repl-all yes
+    config set slave-repl-all no
 
-
+1. Config remain in memory, never persist to disk
+2. Cofig will automatically become yes when server become master
 
 
 

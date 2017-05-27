@@ -785,7 +785,18 @@ void configSetCommand(redisClient *c) {
 
         if (yn == -1) goto badfmt;
         server.repl_slave_ro = yn;
-    } else if (!strcasecmp(c->argv[2]->ptr,"activerehashing")) {
+    }else if (!strcasecmp(c->argv[2]->ptr,"slave-repl-all")) {
+        int yn = yesnotoi(o->ptr);
+
+        if (yn == -1) goto badfmt;
+
+        sds client = catClientInfoString(sdsempty(),c);
+        redisLog(REDIS_NOTICE,"config set slave-repl-all called %s (user request from '%s')", yn ? "yes":"no", client);
+        sdsfree(client);
+
+        server.repl_slave_repl_all = yn;
+    }
+    else if (!strcasecmp(c->argv[2]->ptr,"activerehashing")) {
         int yn = yesnotoi(o->ptr);
 
         if (yn == -1) goto badfmt;
@@ -1085,6 +1096,8 @@ void configGetCommand(redisClient *c) {
             server.repl_serve_stale_data);
     config_get_bool_field("slave-read-only",
             server.repl_slave_ro);
+    config_get_bool_field("slave-repl-all",
+            server.repl_slave_repl_all);
     config_get_bool_field("stop-writes-on-bgsave-error",
             server.stop_writes_on_bgsave_err);
     config_get_bool_field("daemonize", server.daemonize);

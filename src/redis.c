@@ -1515,6 +1515,7 @@ void initServerConfig(void) {
     server.repl_syncio_timeout = REDIS_REPL_SYNCIO_TIMEOUT;
     server.repl_serve_stale_data = REDIS_DEFAULT_SLAVE_SERVE_STALE_DATA;
     server.repl_slave_ro = REDIS_DEFAULT_SLAVE_READ_ONLY;
+    server.repl_slave_repl_all = REDIS_DEFAULT_SLAVE_REPLICATE_ALL;
     server.repl_down_since = 0; /* Never connected, repl is down since EVER. */
     server.repl_disable_tcp_nodelay = REDIS_DEFAULT_REPL_DISABLE_TCP_NODELAY;
     server.repl_diskless_sync = REDIS_DEFAULT_REPL_DISKLESS_SYNC;
