@@ -52,29 +52,30 @@ test "SDOWN is triggered by masters advertising as slaves" {
     ensure_master_up
 }
 
-test "SDOWN is triggered by misconfigured instance repling with errors" {
-    ensure_master_up
-    set orig_dir [lindex [R 0 config get dir] 1]
-    set orig_save [lindex [R 0 config get save] 1]
-    # Set dir to / and filename to "tmp" to make sure it will fail.
-    R 0 config set dir /
-    R 0 config set dbfilename tmp
-    R 0 config set save "1000000 1000000"
-    R 0 bgsave
-    ensure_master_down
-    R 0 config set save $orig_save
-    R 0 config set dir $orig_dir
-    R 0 config set dbfilename dump.rdb
-    R 0 bgsave
-    ensure_master_up
-}
+# see server.c:3684, DISK_ERROR_TYPE_RDB not for "config rewrite"
+# test "SDOWN is triggered by misconfigured instance repling with errors" {
+#     ensure_master_up
+#     set orig_dir [lindex [R 0 config get dir] 1]
+#     set orig_save [lindex [R 0 config get save] 1]
+#     # Set dir to / and filename to "tmp" to make sure it will fail.
+#     R 0 config set dir /
+#     R 0 config set dbfilename tmp
+#     R 0 config set save "1000000 1000000"
+#     R 0 bgsave
+#     ensure_master_down
+#     R 0 config set save $orig_save
+#     R 0 config set dir $orig_dir
+#     R 0 config set dbfilename dump.rdb
+#     R 0 bgsave
+#     ensure_master_up
+# }
 
 # We use this test setup to also test command renaming, as a side
 # effect of the master going down if we send PONG instead of PING
 test "SDOWN is triggered if we rename PING to PONG" {
     ensure_master_up
-    S $::alive_sentinel SENTINEL SET mymaster rename-command PING PONG
+    S $::alive_sentinel SENTINEL SET mymaster rename-command "CONFIG REWRITE" PONG
     ensure_master_down
-    S $::alive_sentinel SENTINEL SET mymaster rename-command PING PING
+    S $::alive_sentinel SENTINEL SET mymaster rename-command "CONFIG REWRITE" "CONFIG REWRITE"
     ensure_master_up
 }

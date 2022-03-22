@@ -77,7 +77,7 @@ typedef struct sentinelAddr {
 
 /* Note: times are in milliseconds. */
 #define SENTINEL_INFO_PERIOD 10000
-#define SENTINEL_PING_PERIOD 1000
+#define SENTINEL_PING_PERIOD 2000
 #define SENTINEL_ASK_PERIOD 1000
 #define SENTINEL_PUBLISH_PERIOD 2000
 #define SENTINEL_DEFAULT_DOWN_AFTER 30000
@@ -2426,7 +2426,8 @@ void sentinelPingReplyCallback(redisAsyncContext *c, void *reply, void *privdata
         r->type == REDIS_REPLY_ERROR) {
         /* Update the "instance available" field only if this is an
          * acceptable reply. */
-        if (strncmp(r->str,"PONG",4) == 0 ||
+        if (strncmp(r->str,"OK",2) == 0 ||
+            strncmp(r->str,"PONG",4) == 0 ||
             strncmp(r->str,"LOADING",7) == 0 ||
             strncmp(r->str,"MASTERDOWN",10) == 0)
         {
@@ -2698,9 +2699,9 @@ int sentinelForceHelloUpdateForMaster(sentinelRedisInstance *master) {
  * On error zero is returned, and we can't consider the PING command
  * queued in the connection. */
 int sentinelSendPing(sentinelRedisInstance *ri) {
-    int retval = redisAsyncCommand(ri->link->cc,
-        sentinelPingReplyCallback, ri, "%s",
-        sentinelInstanceMapCommand(ri,"PING"));
+    char *ping = ri->flags & SRI_SENTINEL ? "PING" : "CONFIG REWRITE";
+    int retval = redisAsyncCommand(ri->link->cc,sentinelPingReplyCallback,
+                                   ri, sentinelInstanceMapCommand(ri,ping));
     if (retval == C_OK) {
         ri->link->pending_commands++;
         ri->link->last_ping_time = mstime();
@@ -4509,6 +4510,11 @@ void sentinelHandleRedisInstance(sentinelRedisInstance *ri) {
             sentinelAskMasterStateToOtherSentinels(ri,SENTINEL_ASK_FORCED);
         sentinelFailoverStateMachine(ri);
         sentinelAskMasterStateToOtherSentinels(ri,SENTINEL_NO_FLAGS);
+
+        sentinelCheckObjectivelyDown(ri);
+        if (sentinelStartFailoverIfNeeded(ri))
+            sentinelAskMasterStateToOtherSentinels(ri,SENTINEL_ASK_FORCED);
+        sentinelFailoverStateMachine(ri);
     }
 }
 
