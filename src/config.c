@@ -2617,6 +2617,7 @@ standardConfig configs[] = {
     createULongLongConfig("rocksdb.bytes_per_sync", NULL, IMMUTABLE_CONFIG, 0, ULLONG_MAX, server.rocksdb_bytes_per_sync, 1*1024*1024, MEMORY_CONFIG, NULL, NULL),
     createULongLongConfig("rocksdb.data.max_bytes_for_level_base", "rocksdb.max_bytes_for_level_base", IMMUTABLE_CONFIG, 1*1024*1024, ULLONG_MAX, server.rocksdb_data_max_bytes_for_level_base, 256*1024*1024, MEMORY_CONFIG, NULL, NULL),
     createULongLongConfig("rocksdb.meta.max_bytes_for_level_base", NULL, IMMUTABLE_CONFIG, 1*1024*1024, ULLONG_MAX, server.rocksdb_meta_max_bytes_for_level_base, 256*1024*1024, MEMORY_CONFIG, NULL, NULL),
+    createULongLongConfig("gtid-uuid-gap-max-memory", NULL, MODIFIABLE_CONFIG, 1024, ULLONG_MAX, server.gtid_uuid_gap_max_memory, 1*1024*1024, MEMORY_CONFIG, NULL, NULL),
 
     /* Size_t configs */
     createSizeTConfig("hash-max-ziplist-entries", NULL, MODIFIABLE_CONFIG, 0, LONG_MAX, server.hash_max_ziplist_entries, 512, INTEGER_CONFIG, NULL, NULL),
