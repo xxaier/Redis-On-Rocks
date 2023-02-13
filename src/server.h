@@ -1811,6 +1811,7 @@ struct redisServer {
     int gtid_enabled;  /* Is gtid enabled? */
     int gtid_enabled_config_sync_with_master;  /* Keep slave gtid-enabled config in sync with master? */
     unsigned long long gtid_uuid_gap_max_memory;
+    unsigned long long gtid_uuid_max_idle_seconds;
     gtidSet *gtid_executed;
     uuidSet* current_uuid;
     size_t gtid_purged_gap_count;
