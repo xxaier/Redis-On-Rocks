@@ -69,6 +69,9 @@ extern const char *swap_cf_names[CF_COUNT];
  * before submitExpireClientRequest and should not skip expire even
  * if current role is slave. */
 #define SWAP_EXPIRE_FORCE (1U<<7)
+/* hdel unset dirty*/
+#define SWAP_IN_DEL_UNSET_DIRTY (1U<<8)
+
 
 /* Delete rocksdb data key */
 #define SWAP_EXEC_IN_DEL (1U<<0)
@@ -78,7 +81,7 @@ extern const char *swap_cf_names[CF_COUNT];
 /* Propagate expired when swap finish */
 #define SWAP_FIN_PROP_EXPIRED (1U<<9)
 /* Set object dirty when swap finish */
-#define SWAP_FIN_SET_DIRTY (1U<<10)
+#define SWAP_FIN_UNSET_DIRTY (1U<<10)
 
 #define SWAP_NOP    0
 #define SWAP_IN     1

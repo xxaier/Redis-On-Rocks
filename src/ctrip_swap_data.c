@@ -61,8 +61,8 @@ int swapDataKeyRequestFinished(swapData *data) {
     if (data->propagate_expire) {
         deleteExpiredKeyAndPropagate(data->db,data->key);
     }
-
-    if (data->set_dirty || data->del_meta) {
+    // data->set_dirty contains (data->del_meta)
+    if (data->set_dirty) {
         dbSetDirty(data->db,data->key);
     }
 
@@ -108,7 +108,10 @@ int swapDataAna(swapData *d, struct keyRequest *key_request,
                 intention_flags,datactx);
         
         if ((*intention_flags & SWAP_FIN_DEL_SKIP) ||
-                (*intention_flags & SWAP_EXEC_IN_DEL)) {
+                (
+                *intention_flags & SWAP_EXEC_IN_DEL &&
+                !(*intention_flags & SWAP_FIN_UNSET_DIRTY)
+            )) {
             /* rocksdb and mem differs. */
             d->set_dirty = 1;
         }

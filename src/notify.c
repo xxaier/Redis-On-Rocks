@@ -92,7 +92,7 @@ sds keyspaceEventsFlagsToString(int flags) {
 }
 
 void ctrip_setObjDirtyIfNeeded(int type, robj *key, int dbid) {
-    static const int notifyTypeIgnore = NOTIFY_EVICTED|NOTIFY_KEY_MISS|NOTIFY_LOADED;
+    static const int notifyTypeIgnore = NOTIFY_EVICTED|NOTIFY_KEY_MISS|NOTIFY_LOADED|NOTIFY_UNDIRTY;
     if (type & notifyTypeIgnore) return;
 
     robj* o = lookupKey(&server.db[dbid], key, LOOKUP_NOTOUCH);

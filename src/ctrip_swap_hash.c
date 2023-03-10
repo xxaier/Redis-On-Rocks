@@ -97,6 +97,7 @@ int hashSwapAna(swapData *data, struct keyRequest *req,
                 /* HDEL: even if field is hot (exists in value), we still
                  * need to do ROCKS_DEL on those fields. */
                 if (cmd_intention_flags == SWAP_IN_DEL ||
+                        cmd_intention_flags == SWAP_IN_DEL_UNSET_DIRTY || 
                         data->value == NULL ||
                         !hashTypeExists(data->value,subkey->ptr)) {
                     incrRefCount(subkey);
@@ -107,6 +108,8 @@ int hashSwapAna(swapData *data, struct keyRequest *req,
             *intention = datactx->ctx.num > 0 ? SWAP_IN : SWAP_NOP;
             if (cmd_intention_flags == SWAP_IN_DEL)
                 *intention_flags = SWAP_EXEC_IN_DEL;
+            else if (cmd_intention_flags == SWAP_IN_DEL_UNSET_DIRTY)
+                *intention_flags = SWAP_EXEC_IN_DEL | SWAP_FIN_UNSET_DIRTY;
             else
                 *intention_flags = 0;
         }

@@ -589,7 +589,7 @@ struct redisCommand redisCommandTable[] = {
 
     {"hdel",hdelCommand,-3,
      "write fast @hash",
-     0,NULL,getKeyRequestsHdel,SWAP_IN,SWAP_IN_DEL,1,1,1,0,0,0},
+     0,NULL,getKeyRequestsHdel,SWAP_IN,SWAP_IN_DEL_UNSET_DIRTY,1,1,1,0,0,0},
 
     {"hlen",hlenCommand,2,
      "read-only fast @hash",

@@ -859,7 +859,7 @@ void hdelCommand(client *c) {
             notifyKeyspaceEvent(NOTIFY_GENERIC,"del",c->argv[1],
                                 c->db->id);
         } else {
-            notifyKeyspaceEventDirty(NOTIFY_HASH,"hdel",c->argv[1],c->db->id,o,NULL);
+            notifyKeyspaceEvent(NOTIFY_HASH|NOTIFY_UNDIRTY,"hdel",c->argv[1],c->db->id);
         }
         server.dirty += deleted;
     }

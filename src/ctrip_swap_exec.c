@@ -862,6 +862,15 @@ int doAuxDelSub(swapRequest *req, int action, int numkeys, int* cfs,
     }
 }
 
+static sds debugRioGet(int cf, sds rawkey) {
+    sds rawval;
+    RIO _rio, *rio = &_rio;
+    RIOInitGet(rio,cf,rawkey);
+    doRIO(rio);
+    rawval = rio->get.rawval;
+    return rawval;
+}
+
 /* do auxillary delete:
  * - metacf: if (intention is DEL) or (intention is IN.DEL and key turned hot)
  * - datacf: if intention is IN.DEL or corresponding score subkey deleted(zset)
@@ -870,7 +879,6 @@ int doAuxDelSub(swapRequest *req, int action, int numkeys, int* cfs,
 int doAuxDel(swapRequest *req, RIO *rio) {
     sds *rawkeys, *rawvals;
     int errcode, numkeys, *cfs, *tmpcfs = NULL, i;
-
     switch (rio->action) {
     case ROCKS_GET:
         numkeys = 1;
@@ -903,7 +911,53 @@ int doAuxDel(swapRequest *req, RIO *rio) {
     }
 
     errcode = doAuxDelSub(req,rio->action,numkeys,cfs,rawkeys,rawvals);
-
+    if (req->intention_flags & SWAP_FIN_UNSET_DIRTY) {
+        serverAssert(req->data->object_type != OBJ_STRING);
+        int del_num = 0;
+        for (i = 0; i < numkeys; i++) {
+            if (rawvals[i] != NULL) {
+                del_num++;
+            }
+        }
+        if (del_num != 0) {
+            //update cold meta
+            sds meta_rawkey = rocksEncodeMetaKey(req->data->db,req->data->key->ptr);
+            objectMeta *cold_meta = req->data->cold_meta?dupObjectMeta(req->data->cold_meta): NULL;
+            long long cold_expire = -1;
+            int cold_object_type = -1;
+            uint64_t cold_version;
+            if (cold_meta == NULL) {
+                sds meta_rawval = debugRioGet(META_CF,meta_rawkey);
+                serverAssert(meta_rawval != NULL);
+                const char *extend;
+                size_t extlen;
+                rocksDecodeMetaVal(meta_rawval,sdslen(meta_rawval),
+                        &cold_object_type,&cold_expire,&cold_version,&extend,&extlen);
+                if (extend) {
+                    buildObjectMeta(cold_object_type,cold_version,extend,extlen,&cold_meta);
+                }
+                serverAssert(cold_meta != NULL);
+                cold_meta->len -= numkeys;
+                sdsfree(meta_rawval);
+            } else {
+                cold_expire = req->data->expire;
+                cold_version = cold_meta->version;
+                cold_object_type = cold_meta->object_type;
+            }
+            serverAssert(cold_meta->len > 0);
+            RIO rio_, *rio = &rio_;
+            sds extend;
+            if (req->data->omtype->encodeObjectMeta) {
+                extend = req->data->omtype->encodeObjectMeta(cold_meta);
+            }
+            sds meta_rawval = rocksEncodeMetaVal(cold_object_type,cold_expire,cold_version,extend);
+            sdsfree(extend);
+            RIOInitPut(rio,META_CF,meta_rawkey,meta_rawval);
+            errcode = doRIO(rio);
+            RIODeinit(rio);
+            freeObjectMeta(cold_meta);
+        }
+    }
     if (tmpcfs) zfree(tmpcfs);
     return errcode;
 }
@@ -1009,6 +1063,11 @@ static void executeSwapInRequest(swapRequest *req) {
         if (is_hot) {
             req->data->del_meta = 1;
             req->data->persistence_deleted = 1;
+            if (req->intention_flags & SWAP_FIN_UNSET_DIRTY) {
+                // req->intention_flags &= ~SWAP_FIN_UNSET_DIRTY;
+                // serverAssert(!(req->intention_flags & SWAP_FIN_UNSET_DIRTY));
+                req->data->set_dirty = 1;
+            }
             errcode = doSwapDelMeta(data);
             if (data->object_type != OBJ_STRING) {
                 /* String is not versioned */
