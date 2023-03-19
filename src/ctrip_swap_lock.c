@@ -419,6 +419,7 @@ lock *lockNew(int64_t txid, redisDb *db, robj *key, client *c,
     lock->pdfree = pdfree;
     lock->lock_timer = 0;
     lock->conflict = 0;
+    lock->start_time = mstime();
 
     UNUSED(msgs);
 #ifdef SWAP_DEBUG
@@ -507,9 +508,30 @@ static inline void lockEndLatencyTraceIfNeeded(lock *lock) {
     }
 }
 
+static void lockUpdateWaitTime(lock *lock) {
+    long long wait_time = mstime() - lock->start_time;
+    int level;
+    if (lock->key != NULL) {
+        level = REQUEST_LEVEL_KEY;
+    } else if (lock->db != NULL) {
+        level = REQUEST_LEVEL_DB;
+    } else {
+        level = REQUEST_LEVEL_SVR;
+    }
+    lockInstantaneouStat* stat = server.swap_lock->stat->instant+level;
+    stat->total_wait_times[stat->index] += wait_time;
+    stat->total_counts[stat->index] += 1;
+
+    if (stat->wait_time_maxs[stat->index] < wait_time) {
+        stat->wait_time_maxs[stat->index] = wait_time;
+    }
+
+}
+
 static void lockProceed(lock *lock) {
     serverAssert(lockLinkTargetReady(&lock->link.target));
     lockEndLatencyTraceIfNeeded(lock);
+    lockUpdateWaitTime(lock);
     lock->proceed(lock,lock->db,lock->key,lock->c,lock->pd);
 }
 
@@ -624,13 +646,19 @@ int lockWouldBlock(int64_t txid, redisDb *db, robj *key) {
 }
 
 static lockInstantaneouStat *lockStatCreateInstantaneou() {
-    int i, metric_offset;
+    int i, j, metric_offset;
     lockInstantaneouStat *inst_stats = lock_malloc(REQUEST_LEVEL_TYPES*sizeof(lockInstantaneouStat));
     for (i = 0; i < REQUEST_LEVEL_TYPES; i++) {
         metric_offset = SWAP_LOCK_STATS_METRIC_OFFSET + i * SWAP_LOCK_METRIC_SIZE;
         inst_stats[i].name = requestLevelName(i);
         inst_stats[i].request_count = 0;
         inst_stats[i].conflict_count = 0;
+        inst_stats[i].index = 0;
+        for (j = 0;j < STATS_METRIC_SAMPLES;j++) {
+            inst_stats[i].wait_time_maxs[j] = 0;
+            inst_stats[i].total_wait_times[j] = 0;
+            inst_stats[i].total_counts[j] = 0;
+        }
         inst_stats[i].stats_metric_idx_request = metric_offset+SWAP_LOCK_METRIC_REQUEST;
         inst_stats[i].stats_metric_idx_conflict = metric_offset+SWAP_LOCK_METRIC_CONFLICT;
     }
@@ -664,6 +692,11 @@ void trackSwapLockInstantaneousMetrics() {
         trackInstantaneousMetric(inst_stat->stats_metric_idx_request,request);
         atomicGet(inst_stat->conflict_count,conflict);
         trackInstantaneousMetric(inst_stat->stats_metric_idx_conflict,conflict);
+        inst_stat->index++;
+        inst_stat->index %= STATS_METRIC_SAMPLES;
+        inst_stat->wait_time_maxs[inst_stat->index] = 0;
+        inst_stat->total_wait_times[inst_stat->index] = 0;
+        inst_stat->total_counts[inst_stat->index] = 0;        
     }
 }
 
@@ -697,15 +730,22 @@ sds genSwapLockInfoString(sds info) {
             cumu_stat->conflict_count);
 
     for (j = 0; j < REQUEST_LEVEL_TYPES; j++) {
-        long long request, conflict, rps, cps;
+        long long request, conflict, rps, cps, wait_time_count = 0, total_wait_time = 0, max_wait_time = 0;
         lockInstantaneouStat *lock_stat = server.swap_lock->stat->instant+j;
         atomicGet(lock_stat->request_count,request);
         atomicGet(lock_stat->conflict_count,conflict);
         rps = getInstantaneousMetric(lock_stat->stats_metric_idx_request);
         cps = getInstantaneousMetric(lock_stat->stats_metric_idx_conflict);
+        for(int k = 0; k < STATS_METRIC_SAMPLES; k++) {
+            if (max_wait_time < lock_stat->wait_time_maxs[k]) {
+                max_wait_time = lock_stat->wait_time_maxs[k];
+            }
+            wait_time_count += lock_stat->total_counts[k];
+            total_wait_time += lock_stat->total_wait_times[k];
+        }
         info = sdscatprintf(info,
-                "swap_lock_%s:request=%lld,conflict=%lld,request_ps=%lld,conflict_ps=%lld\r\n",
-                lock_stat->name,request,conflict,rps,cps);
+                "swap_lock_%s:request=%lld,conflict=%lld,request_ps=%lld,conflict_ps=%lld,avg_wait_time=%lld,max_wait_time=%lld\r\n",
+                lock_stat->name,request,conflict,rps,cps,wait_time_count != 0?total_wait_time/wait_time_count : 0, max_wait_time);
     }
     return info;
 }

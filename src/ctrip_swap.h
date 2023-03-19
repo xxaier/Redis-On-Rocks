@@ -1057,6 +1057,7 @@ typedef struct lock {
   freefunc pdfree;
   int conflict;
   monotime lock_timer;
+  long long start_time;
 #ifdef SWAP_DEBUG
   swapDebugMsgs *msgs;
 #endif
@@ -1085,8 +1086,14 @@ typedef struct lockInstantaneouStat {
     const char *name;
     redisAtomic long long request_count;
     redisAtomic long long conflict_count;
+    long long total_wait_times[STATS_METRIC_SAMPLES];
+    long long total_counts[STATS_METRIC_SAMPLES];
+    long long wait_time_maxs[STATS_METRIC_SAMPLES];
+    int index;
     int stats_metric_idx_request;
     int stats_metric_idx_conflict;
+    int stats_metric_idx_total_wait_time;
+    int stats_metric_idx_total_count;
 } lockInstantaneouStat;
 
 typedef struct lockCumulativeStat {
