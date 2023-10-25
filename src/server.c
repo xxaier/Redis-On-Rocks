@@ -3668,6 +3668,7 @@ void InitServerLast() {
     server.swap_rewind_type = SWAP_REWIND_OFF;
     server.swap_torewind_clients = listCreate();
     server.swap_rewinding_clients = listCreate();
+    server.swap_draining_master = NULL;
     rocksInit();
     server.util_task_manager = createRocksdbUtilTaskManager();
     asyncCompleteQueueInit();
